@@ -1,0 +1,318 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appBaseName": {
+      "type": "string"
+    },
+    "appBaseName2": {
+      "type": "string"
+    },
+    "sqlName": {
+      "type": "string"
+    },
+    "adminLogin": {
+      "type": "string"
+    },
+    "secretValue": {
+      "type": "securestring"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    },
+    "appInsights": {
+      "type": "string"
+    },
+    "appInsights2": {
+      "type": "string"
+    },
+    "collation": {
+      "type": "string",
+      "defaultValue": "Arabic_CI_AS"
+    },
+    "edition": {
+      "type": "string",
+      "defaultValue": "Basic"
+    },
+    "secretsPermissions": {
+      "type": "array",
+      "defaultValue": [
+        "get",
+        "list"
+      ]
+    },
+    "objectiveName": {
+      "type": "string",
+      "defaultValue": "Basic"
+    },
+    "keyVaultName": {
+      "type": "string"
+    },
+    "sdemcType": {
+      "type": "string",
+      "defaultValue": "Standard_GRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "locations": {
+            "type": "array",
+            "defaultValue": [
+                "West US",
+                "West Europe"
+            ],
+            "metadata": {
+                "description": "Locations"
+            }
+    }
+    },
+  "variables": {
+    "sdemcName": "[concat('sdemc', uniqueString(resourceGroup().id))]"},
+  "resources": [
+        {      
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2019-09-01",
+      "name": "[parameters('keyVaultName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "enabledForDeployment": false,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": false,
+        "tenantId": "[subscription().tenantId]",
+        "accessPolicies": [
+          {
+            "objectId": "[reference(concat('Microsoft.Web/sites/', parameters('appBaseName')), '2018-11-01','Full').identity.principalId]",
+            "tenantId": "[subscription().tenantId]",
+            "permissions": {
+            "secrets": "[parameters('secretsPermissions')]"
+            },
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('appBaseName'))]"
+          ]
+          }
+        ],
+        "sku": {
+          "name": "Standard",
+          "family": "A"
+        },
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2019-09-01",
+      "name": "[concat(parameters('keyVaultName'), '/', 'connectionString')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+      ],
+      "properties": {
+        "value": "[parameters('secretValue')]"
+      }
+    },
+    {
+      "name": "[parameters('appInsights')]",
+      "type": "microsoft.insights/components",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2020-02-02",
+      "kind": "web",
+      "properties": {
+        "ApplicationId": "[parameters('appInsights')]",
+        "Application_Type": "web",
+        "Flow_Type": "Bluefield",
+        "Request_Source": "rest"
+      }
+    },
+
+{
+      "name": "[parameters('appInsights2')]",
+      "type": "microsoft.insights/components",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2020-02-02",
+      "kind": "web",
+      "properties": {
+        "ApplicationId": "[parameters('appInsights2')]",
+        "Application_Type": "web",
+        "Flow_Type": "Bluefield",
+        "Request_Source": "rest"
+      }
+    },
+
+    {
+      "name": "[parameters('appBaseName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "sku": {
+        "name": "F1"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "appBaseName"
+      },
+      "properties": {
+        "name": "[parameters('appBaseName')]",
+        "numberOfWorkers": 1
+      }
+    },
+    {
+      "name": "[parameters('appBaseName')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "identity": { "type": "SystemAssigned" },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appBaseName'))]",
+        "[resourceId('microsoft.insights/components', parameters('appInsights'))]"
+      ],
+      "tags": {
+        "[concat('hidden-related:', resourceId('Microsoft.Web/serverfarms', parameters('appBaseName')))]": "Resource",
+        "displayName": "appBaseName"
+      },
+      "properties": {
+        "name": "[parameters('appBaseName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appBaseName'))]",
+        "siteConfig": {
+          "location": "[resourceGroup().location]",
+          "appSettings" : [
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(concat('microsoft.insights/components/', parameters('appInsights')), '2015-05-01').InstrumentationKey]"
+            }],
+            "connectionStrings": [
+            {
+              "name": "connectionString",
+              "connectionString": "[concat('@Microsoft.KeyVault(SecretUri=https://', parameters('keyVaultName'),'.vault.azure.net/secrets/connectionString)')]",
+              "type": 1
+            }
+          ]
+        }
+      }
+    },
+
+
+
+
+
+{
+      "name": "[parameters('appBaseName2')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "sku": {
+        "name": "F1"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "appBaseName2"
+      },
+      "properties": {
+        "name": "[parameters('appBaseName2')]",
+        "numberOfWorkers": 1
+      }
+    },
+    {
+      "name": "[parameters('appBaseName2')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "identity": { "type": "SystemAssigned" },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appBaseName2'))]",
+        "[resourceId('microsoft.insights/components', parameters('appInsights'))]"
+      ],
+      "tags": {
+        "[concat('hidden-related:', resourceId('Microsoft.Web/serverfarms', parameters('appBaseName2')))]": "Resource",
+        "displayName": "appBaseName2"
+      },
+      "properties": {
+        "name": "[parameters('appBaseName2')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appBaseName2'))]",
+        "siteConfig": {
+          "location": "[resourceGroup().location]",
+          "appSettings" : [
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(concat('microsoft.insights/components/', parameters('appInsights2')), '2015-05-01').InstrumentationKey]"
+            }],
+            "connectionStrings": [
+            {
+              "name": "connectionString",
+              "connectionString": "[concat('@Microsoft.KeyVault(SecretUri=https://', parameters('keyVaultName'),'.vault.azure.net/secrets/connectionString)')]",
+              "type": 1
+            }
+          ]
+        }
+      }
+    },
+
+
+
+
+
+
+    {
+      "name": "[parameters('sqlName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2014-04-01",
+      "dependsOn": [],
+      "properties": {
+        "administratorLogin": "[parameters('adminLogin')]",
+        "administratorLoginPassword": "[parameters('adminPassword')]"
+      },
+      "resources": [
+        {
+          "name": "softserve",
+          "type": "firewallRules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', parameters('sqlName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "45.60.65.61",
+            "endIpAddress": "45.60.65.61"
+          }
+        },
+        {
+          "name": "[parameters('sqlName')]",
+          "type": "databases",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', parameters('sqlName'))]"
+          ],
+          "properties": {
+            "collation": "[parameters('collation')]",
+            "edition": "[parameters('edition')]",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "[parameters('objectiveName')]"
+          }
+        }
+      ]
+    },
+{
+      "name": "[variables('sdemcName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "[parameters('sdemcType')]"
+      },
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "sdemc"
+      },
+      "kind": "Storage"
+    }
+  ],
+"outputs": {}
+}

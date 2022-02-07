@@ -1,0 +1,34 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "appBaseName": {
+        "value": "sdemc"
+      },
+      "appBaseName2": {
+        "value": "sdemc2"
+      },
+      "sqlName": {
+        "value": "sdemc"
+      },
+      "adminLogin": {
+        "value": "user"
+      },
+      "secretValue": {
+        "value": "sdemc222"
+      },
+      "adminPassword": {
+        "value": "Ergiy1515eRJGJKHJHJKHJHJKH"
+      },
+      "appInsights": {
+        "value": "sdemc1"
+      },
+      "appInsights2": {
+        "value": "sdemc2"
+      },
+      "keyVaultName": {
+        "value": "sdemc7"
+    
+      }
+    }
+  }
